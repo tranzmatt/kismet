@@ -101,8 +101,9 @@ typedef struct {
     ubertooth_t *ut;
     int ubertooth_number;
 
-    char *interface;
-    char *name;
+    char *interface = NULL;
+    char *name = NULL;
+    char *serial = NULL;
 
     pthread_mutex_t u1_mutex;
 
@@ -164,7 +165,12 @@ int u1_reset_and_conf(kis_capture_handler_t *caph, char *errstr) {
 
     sleep(1);
 
-    while (ubertooth_connect(local_ubertooth->ut, local_ubertooth->ubertooth_number) < 1) {
+    if (local_ubertooth->serial)
+        ret = ubertooth_connect_serial(local_ubertooth->ut, local_ubertooth->serial);
+    else
+        ret = ubertooth_connect(local_ubertooth->ut, local_ubertooth->ubertooth_number);
+
+    while (ret < 1) {
         count++;
 
         if (count > 5) {
@@ -175,6 +181,10 @@ int u1_reset_and_conf(kis_capture_handler_t *caph, char *errstr) {
         }
 
         sleep(1);
+        if (local_ubertooth->serial)
+            ret = ubertooth_connect_serial(local_ubertooth->ut, local_ubertooth->serial);
+        else
+            ret = ubertooth_connect(local_ubertooth->ut, local_ubertooth->ubertooth_number);
     }
 
     ret = ubertooth_check_api(local_ubertooth->ut);
@@ -435,6 +445,8 @@ int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
     char *localchanstr = NULL;
     unsigned int *localchan = NULL;
 
+    char ubertooth_number_s[34] = { 0 }, *u_s = ubertooth_number_s;
+    char u_si[34] = { 0 };
     int ubertooth_number;
     int u1_num;
 
@@ -459,22 +471,37 @@ int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
     /* is it an ubertooth? */
     if (strcmp("ubertooth", local_ubertooth->interface) == 0) {
         ubertooth_number = -1;
-    } else if ((ret = sscanf(local_ubertooth->interface, "ubertooth%u", &ubertooth_number)) != 1) {
-        if ((ret = sscanf(local_ubertooth->interface, "ubertooth-%u", &ubertooth_number)) != 1) {
+    } else if ((ret = sscanf(local_ubertooth->interface, "ubertooth-%s", &ubertooth_number_s)) != 1) {
+        if ((ret = sscanf(local_ubertooth->interface, "ubertooth%s", &ubertooth_number_s)) != 1) {
             snprintf(msg, STATUS_MAX, "%s could not parse ubertooth device from interface",
                     local_ubertooth->name);
             return -1;
         }
     }
 
-    /* is it out of range? */
-    if (ubertooth_number > u1_num) {
-        snprintf(msg, STATUS_MAX, "%s could not find ubertooth %d (%d present)",
+    /* Strip off leading 0's */
+    if (ubertooth_number_s[0] == '0')
+        for (int i = 0; i < strlen(ubertooth_number_s) && ubertooth_number_s[i] == '0' ; i++) u_s++;
+
+    ubertooth_number = atoi(u_s);
+    sprintf(u_si,"%u",ubertooth_number);
+
+    if (strlen(u_s) == strlen(u_si)) {
+	/* It's an index, but is it out of range? */
+        if (ubertooth_number > u1_num) {
+            snprintf(msg, STATUS_MAX, "%s could not find ubertooth %d (%d present)",
                 local_ubertooth->name, ubertooth_number, u1_num);
-        return -1;
+            return -1;
+        }
+        local_ubertooth->ubertooth_number = ubertooth_number;
+    }
+    else
+    {
+	local_ubertooth->serial = strndup(u_s, strlen(u_s));
+        local_ubertooth->ubertooth_number = adler32_csum((unsigned char *)u_s, strlen(u_s)) 0xFFFFFFFFFF;
     }
 
-    local_ubertooth->ubertooth_number = ubertooth_number;
+
 
     /* Make a spoofed, but consistent, UUID based on the adler32 of the interface name 
      * and the mac address of the device */
@@ -484,13 +511,17 @@ int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
         snprintf(errstr, STATUS_MAX, "%08X-0000-0000-0000-%012X",
                 adler32_csum((unsigned char *) "kismet_cap_ubertooth_one", 
                     strlen("kismet_cap_ubertooth_one")) & 0xFFFFFFFF,
-                ubertooth_number);
+                local_ubertooth->ubertooth_number);
         *uuid = strdup(errstr);
     }
 
     local_ubertooth->ut = ubertooth_init();
 
-    ret = ubertooth_connect(local_ubertooth->ut, ubertooth_number);
+    if (local_ubertooth->serial)
+        ret = ubertooth_connect_serial(local_ubertooth->ut, local_ubertooth->serial);
+    else
+        ret = ubertooth_connect(local_ubertooth->ut, local_ubertooth->ubertooth_number);
+
     if (ret < 0) {
         snprintf(msg, STATUS_MAX, "%s could not connect to %s",
                 local_ubertooth->name, local_ubertooth->interface);
