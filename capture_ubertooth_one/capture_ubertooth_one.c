@@ -101,9 +101,9 @@ typedef struct {
     ubertooth_t *ut;
     int ubertooth_number;
 
-    char *interface = NULL;
-    char *name = NULL;
-    char *serial = NULL;
+    char *interface;
+    char *name;
+    char *serial;
 
     pthread_mutex_t u1_mutex;
 
@@ -471,8 +471,8 @@ int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
     /* is it an ubertooth? */
     if (strcmp("ubertooth", local_ubertooth->interface) == 0) {
         ubertooth_number = -1;
-    } else if ((ret = sscanf(local_ubertooth->interface, "ubertooth-%s", &ubertooth_number_s)) != 1) {
-        if ((ret = sscanf(local_ubertooth->interface, "ubertooth%s", &ubertooth_number_s)) != 1) {
+    } else if ((ret = sscanf(local_ubertooth->interface, "ubertooth-%s", ubertooth_number_s)) != 1) {
+        if ((ret = sscanf(local_ubertooth->interface, "ubertooth%s", ubertooth_number_s)) != 1) {
             snprintf(msg, STATUS_MAX, "%s could not parse ubertooth device from interface",
                     local_ubertooth->name);
             return -1;
@@ -498,7 +498,7 @@ int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
     else
     {
 	local_ubertooth->serial = strndup(u_s, strlen(u_s));
-        local_ubertooth->ubertooth_number = adler32_csum((unsigned char *)u_s, strlen(u_s)) 0xFFFFFFFFFF;
+        local_ubertooth->ubertooth_number = adler32_csum((unsigned char *)u_s, strlen(u_s)) & 0xFFFFFFFFFF;
     }
 
 
@@ -679,6 +679,7 @@ int main(int argc, char *argv[]) {
     local_ubertooth_t local_ubertooth = {
         .interface = NULL,
         .name = NULL,
+        .serial = NULL,
         .ut = NULL,
         .u1_mutex = PTHREAD_MUTEX_INITIALIZER,
         .last_channel = 2402,
