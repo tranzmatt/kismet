@@ -25,6 +25,7 @@
 #include "base64.h"
 #include "configfile.h"
 #include "datasourcetracker.h"
+#include "datasource_aisproxy.h" // Added for AIS proxy
 #include "endian_magic.h"
 #include "globalregistry.h"
 #include "kis_databaselogfile.h"
