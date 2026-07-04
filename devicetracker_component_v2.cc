@@ -17,7 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "devicetracker_component_v2.h"
+#include "util.h"
 
 #include "fmt/format.h"
 
@@ -768,3 +773,61 @@ void kis_tracked_device_base_v2::add_subcomponent(const std::string& field,
         throw std::runtime_error(fmt::format("device already has subcomponent {}", field));
     }
 }
+
+void kis_tracked_ip_v4_data_v2::as_json(std::ostream& os, json_adapter_v2::opts *opts) {
+    fmt::print(os, "{{");
+
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+
+    json_adapter_v2::json_encode_keyed<int>{}(os, "kis.common.ipdata.type", opts, to_underlying(ip_type_));
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "kismet.common.ipdata.address", opts, ipv4_to_string(ip_addr_));
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "kismet.common.ipdata.netmask", opts, ipv4_to_string(ip_netmask_));
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "kismet.common.ipdata.gateway", opts, ipv4_to_string(ip_gateway_));
+
+    opts->next_key_comma = sv_comma;
+
+    fmt::print(os, "}}");
+}
+
+void kis_tracked_ip_v4_data_v2::filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) {
+    if (fields.size() == 0) {
+        return as_json(os, opts);
+    }
+
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+
+    fmt::print(os, "{{");
+    for (const auto& f : fields) {
+        switch (json_adapter_v2::consthash(f.first)) {
+            case json_adapter_v2::consthash("kis.common.ipdata.type"):
+                json_adapter_v2::json_encode_keyed<int>{}(os, f.second.rename, opts, to_underlying(ip_type_));
+                break;
+            case json_adapter_v2::consthash("kismet.common.ipdata.address"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, ipv4_to_string(ip_addr_));
+                break;
+            case json_adapter_v2::consthash("kismet.common.ipdata.netmask"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, ipv4_to_string(ip_netmask_));
+                break;
+            case json_adapter_v2::consthash("kismet.common.ipdata.gateway"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, ipv4_to_string(ip_gateway_));
+                break;
+            default:
+                json_adapter_v2::json_encode_keyed<int>{}(os, f.second.rename, opts, 0);
+        }
+    }
+
+    fmt::print(os, "}}");
+    opts->next_key_comma = sv_comma;
+}
+
+
+std::string kis_tracked_ip_v4_data_v2::ipv4_to_string(uint32_t ipv4) const {
+    return fmt::format("{}.{}.{}.{}",
+            (uint8_t) (ipv4 & 0xFF),
+            (uint8_t) ((ipv4 >> 8) & 0xFF),
+            (uint8_t) ((ipv4 >> 16) & 0xFF),
+            (uint8_t) ((ipv4 >> 24) & 0xFF));
+}
+

@@ -589,4 +589,62 @@ template<> struct json_adapter_v2::json_encode<kis_tracked_device_base_v2> {
     }
 };
 
+enum class kis_ipdata_type_v2 {
+	unknown = 0,
+	factoryguess = 1,
+	udptcp = 2,
+	arp = 3,
+	dhcp = 4,
+	group = 5
+};
+
+class kis_tracked_ip_v4_data_v2 : public json_adapter_v2::jsonable {
+public:
+    kis_tracked_ip_v4_data_v2() :
+    json_adapter_v2::jsonable() {
+        reset();
+    }
+
+    virtual ~kis_tracked_ip_v4_data_v2() { }
+
+    void reset() {
+        ip_type_ = kis_ipdata_type_v2::unknown;
+        ip_addr_ = 0;
+        ip_netmask_ = 0;
+        ip_gateway_ = 0;
+    }
+
+    virtual void as_json(std::ostream& os, json_adapter_v2::opts *opts) override;
+    virtual void filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) override;
+
+protected:
+    std::string ipv4_to_string(uint32_t ipv4) const;
+
+    kis_ipdata_type_v2 ip_type_;
+    uint32_t ip_addr_;
+    uint32_t ip_netmask_;
+    uint32_t ip_gateway_;
+};
+
+template<> struct json_adapter_v2::json_encode<kis_tracked_ip_v4_data_v2> {
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, kis_tracked_ip_v4_data_v2& e) {
+         e.as_json(os, opts);
+     }
+
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, kis_tracked_ip_v4_data_v2 *e) {
+         e->as_json(os, opts);
+     }
+
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, kis_tracked_ip_v4_data_v2& e,
+             json_adapter_v2::field_group_map& fields) {
+         e.filtered_as_json(os, opts, fields);
+     }
+
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, kis_tracked_ip_v4_data_v2 *e,
+             json_adapter_v2::field_group_map& fields) {
+         e->filtered_as_json(os, opts, fields);
+     }
+};
+
+
 #endif /* __DEVICETRACKER_COMPONENT_V2__ */
