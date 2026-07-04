@@ -500,6 +500,11 @@ void dot11_probed_ssid_v2::filtered_as_json(std::ostream& os, json_adapter_v2::o
 
 
 void dot11_advertised_ssid_v2::as_json(std::ostream& os, json_adapter_v2::opts *opts) {
+    fmt::print(os, "{{");
+
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+
     json_adapter_v2::json_encode_keyed<kis_tracked_location_v2>{}(os, "dot11.advertisedssid.location", opts, location_);
 
     json_adapter_v2::json_encode_keyed<std::string>{}(os, "dot11.advertisedssid.ssid", opts, ssid_);
@@ -576,6 +581,9 @@ void dot11_advertised_ssid_v2::as_json(std::ostream& os, json_adapter_v2::opts *
     json_adapter_v2::json_encode_keyed<bool>{}(os, "dot11.advertisedssid.dot11s.forwarding", opts, mesh_forwarding_);
 
     json_adapter_v2::json_encode_keyed<uint8_t>{}(os, "dot11.advertisedssid.advertised_txpower", opts, adv_tx_power_);
+
+    fmt::print(os, "}}");
+    opts->next_key_comma = sv_comma;
 }
 
 void dot11_advertised_ssid_v2::filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) {
@@ -748,3 +756,127 @@ void dot11_advertised_ssid_v2::filtered_as_json(std::ostream& os, json_adapter_v
     fmt::print(os, "}}");
     opts->next_key_comma = sv_comma;
 }
+
+
+void dot11_client_v2::as_json(std::ostream& os, json_adapter_v2::opts *opts) {
+    fmt::print(os, "{{");
+
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+
+    json_adapter_v2::json_encode_keyed<uint32_t>{}(os, "dot11.client.type", opts, client_type_);
+
+    json_adapter_v2::json_encode_keyed<kis_tracked_location_v2>{}(os, "dot11.client.location", opts, location_);
+
+    json_adapter_v2::json_encode_keyed<mac_addr>{}(os, "dot11.client.bssid", opts, bssid_);
+    json_adapter_v2::json_encode_keyed<device_key_v2>{}(os, "dot11.client.bssid_key", opts, bssid_key_);
+
+    json_adapter_v2::json_encode_keyed<uint64_t>{}(os, "dot11.client.first_time", opts, first_time_);
+    json_adapter_v2::json_encode_keyed<uint64_t>{}(os, "dot11.client.last_time", opts, last_time_);
+
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "dot11.client.dhcp_host", opts, dhcp_host_);
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "dot11.client.dhcp_vendor", opts, dhcp_vendor_);
+
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "dot11.client.eap_identity", opts, eap_identity_);
+
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "dot11.client.cdp_device", opts, cdp_device_);
+    json_adapter_v2::json_encode_keyed<std::string>{}(os, "dot11.client.cdp_port", opts, cdp_port_);
+
+    json_adapter_v2::json_encode_keyed<kis_tracked_ip_v4_data_v2>{}(os, "dot11.client.ipdata", opts, ip_v4_);
+
+    json_adapter_v2::json_encode_keyed<bool>{}(os, "dot11.client.decrypted", opts, decrypted_);
+
+    json_adapter_v2::json_encode_keyed<uint64_t>{}(os, "dot11.client.datasize", opts, datasize_);
+    json_adapter_v2::json_encode_keyed<uint64_t>{}(os, "dot11.client.datasize_retry", opts, datasize_retry_);
+    json_adapter_v2::json_encode_keyed<uint64_t>{}(os, "dot11.client.num_fragments", opts, num_fragments_);
+    json_adapter_v2::json_encode_keyed<uint64_t>{}(os, "dot11.client.num_retries", opts, num_retries_);
+
+    fmt::print(os, "}}");
+    opts->next_key_comma = sv_comma;
+}
+
+void dot11_client_v2::filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) {
+    if (fields.size() == 0) {
+        return as_json(os, opts);
+    }
+
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+
+    json_adapter_v2::field_group_map subgroup;
+
+    fmt::print(os, "{{");
+    for (const auto& f : fields) {
+        switch (json_adapter_v2::consthash(f.first)) {
+            case json_adapter_v2::consthash("dot11.client.type"):
+                json_adapter_v2::json_encode_keyed<uint32_t>{}(os, f.second.rename, opts, client_type_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.location"):
+                json_adapter_v2::group_fields(f.second.subfields, subgroup);
+                json_adapter_v2::json_encode_keyed<kis_tracked_location_v2>{}(os, f.second.rename, opts, location_, subgroup);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.bssid"):
+                json_adapter_v2::json_encode_keyed<mac_addr>{}(os, f.second.rename, opts, bssid_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.bssid_key"):
+                json_adapter_v2::json_encode_keyed<device_key_v2>{}(os, f.second.rename, opts, bssid_key_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.first_time"):
+                json_adapter_v2::json_encode_keyed<uint64_t>{}(os, f.second.rename, opts, first_time_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.last_time"):
+                json_adapter_v2::json_encode_keyed<uint64_t>{}(os, f.second.rename, opts, last_time_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.dhcp_host"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, dhcp_host_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.dhcp_vendor"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, dhcp_vendor_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.eap_identity"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, eap_identity_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.cdp_device"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, cdp_device_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.cdp_port"):
+                json_adapter_v2::json_encode_keyed<std::string>{}(os, f.second.rename, opts, cdp_port_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.ipdata"):
+                json_adapter_v2::group_fields(f.second.subfields, subgroup);
+                json_adapter_v2::json_encode_keyed<kis_tracked_ip_v4_data_v2>{}(os, f.second.rename, opts, ip_v4_, subgroup);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.decrypted"):
+                json_adapter_v2::json_encode_keyed<bool>{}(os, f.second.rename, opts, decrypted_);
+                break;
+
+            case json_adapter_v2::consthash("dot11.client.datasize"):
+                json_adapter_v2::json_encode_keyed<uint64_t>{}(os, f.second.rename, opts, datasize_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.datasize_retry"):
+                json_adapter_v2::json_encode_keyed<uint64_t>{}(os, f.second.rename, opts, datasize_retry_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.num_fragments"):
+                json_adapter_v2::json_encode_keyed<uint64_t>{}(os, f.second.rename, opts, num_fragments_);
+                break;
+            case json_adapter_v2::consthash("dot11.client.num_retries"):
+                json_adapter_v2::json_encode_keyed<uint64_t>{}(os, f.second.rename, opts, num_retries_);
+                break;
+            default:
+                json_adapter_v2::json_encode_keyed<int>{}(os, f.second.rename, opts, 0);
+        }
+    }
+
+    fmt::print(os, "}}");
+    opts->next_key_comma = sv_comma;
+
+}
+

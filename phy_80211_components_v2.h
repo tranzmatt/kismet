@@ -992,11 +992,21 @@ public:
     const auto& bssid_key() const { return bssid_key_; }
     void set_bssid_key(const auto& v) { bssid_key_ = v; }
 
-    auto first_time() const { return first_time_; }
-    void set_first_time(auto v) { first_time_ = v; }
+    const auto first_time() { return first_time_; }
+    void set_first_time(auto time) { first_time_ = time; }
+    void set_first_time_ifless(auto time) {
+        if (time < first_time_) {
+            first_time_ = time;
+        }
+    }
 
-    auto last_time() const { return last_time_; }
-    void set_last_time(auto v) { last_time_ = v; }
+    const auto last_time() { return last_time_; }
+    void set_last_time(auto time) { last_time_ = time; }
+    void set_last_time_ifgreater(auto time) {
+        if (last_time_ < time) {
+            last_time_ = time;
+        }
+    }
 
     const auto& dhcp_host() const { return dhcp_host_; }
     void set_dhcp_host(const auto& v) { dhcp_host_ = v; }
@@ -1013,20 +1023,27 @@ public:
     const auto& cdp_port() const { return cdp_port_; }
     void set_cdp_port(const auto& v) { cdp_port_ = v; }
 
+    const auto& ip_v4() const { return ip_v4_; }
+    void set_ip_v4(const auto& v) { ip_v4_ = v; }
+
     auto decrypted() const { return decrypted_; }
     void set_decrypted(auto v) { decrypted_ = v; }
 
     auto datasize() const { return datasize_; }
     void set_datasize(auto v) { datasize_ = v; }
+    void inc_datasize(auto v) { datasize_ += v; }
 
     auto datasize_retry() const { return datasize_retry_; }
     void set_datasize_retry(auto v) { datasize_retry_ = v; }
+    void inc_datasize_retry(auto v) { datasize_retry_ += v; }
 
     auto num_fragments() const { return num_fragments_; }
     void set_num_fragments(auto v) { num_fragments_ = v; }
+    void inc_num_fragments(auto v) { num_fragments_ += v; }
 
     auto num_retries() const { return num_retries_; }
     void set_num_retries(auto v) { num_retries_ = v; }
+    void inc_num_retries(auto v) { num_retries_ += v; }
 
     virtual void as_json(std::ostream& os, json_adapter_v2::opts *opts) override;
     virtual void filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) override;
@@ -1050,9 +1067,9 @@ protected:
     std::string cdp_device_;
     std::string cdp_port_;
 
-    bool decrypted_;
+    kis_tracked_ip_v4_data_v2 ip_v4_;
 
-    // ip_data_v2 ipdata;
+    bool decrypted_;
 
     uint64_t datasize_;
     uint64_t datasize_retry_;
