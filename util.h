@@ -55,6 +55,7 @@
 #include <future>
 #include <exception>
 #include <string_view>
+#include <type_traits>
 
 #include <sys/time.h>
 
@@ -650,6 +651,11 @@ void string_vector_inline_filter(D& destination, S *filter,
 // an inefficient regex compare that has to compile the regex each time; only call from
 // queries that aren't high load
 bool regex_string_compare(const std::string& restr, const std::string& content);
+
+template <typename E>
+constexpr auto to_underlying(E e) noexcept {
+    return static_cast<std::underlying_type_t<E>>(e);
+}
 
 #endif
 
