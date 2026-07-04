@@ -83,6 +83,8 @@
 #include "dot11_parsers/dot11_ie_221_wfa.h"
 #include "dot11_parsers/dot11_p2p_ie.h"
 
+#include "phy_80211_components_v2.h"
+
 #include "crc32.h"
 
 // static std::atomic<int> packetnum {0};

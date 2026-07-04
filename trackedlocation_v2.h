@@ -43,6 +43,8 @@ public:
         time_sec_{0},
         time_usec_{0} { }
 
+    virtual ~kis_tracked_location_triplet_v2() { }
+
     void reset() {
         geopoint_ = {0, 0};
         altitude_ = 0;
@@ -124,6 +126,8 @@ public:
         heading_{0},
         magheading_{0} { }
 
+    virtual ~kis_tracked_location_full_v2() { }
+
     void reset() {
         kis_tracked_location_triplet_v2::reset();
         speed_ = 0;
@@ -194,8 +198,9 @@ public:
         agg_x_{0},
         agg_y_{0},
         agg_z_{0},
-        agg_a_{0},
-        last_location_time_{0} { }
+        agg_a_{0} { }
+
+    virtual ~kis_tracked_location_v2() { }
 
     void reset() {
         min_loc_.reset();
@@ -207,13 +212,14 @@ public:
     void add_loc(const kis_gps_packinfo* p);
     void add_loc_with_avg(const kis_gps_packinfo *p);
 
+    virtual void as_json(std::ostream& os, json_adapter_v2::opts *opts) override;
+    virtual void filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) override;
+
 protected:
     kis_tracked_location_triplet_v2 min_loc_, max_loc_, avg_loc_, last_loc_;
 
     double agg_x_, agg_y_, agg_z_, agg_a_;
     uint64_t num_avg_, num_alt_avg_;
-
-    time_t last_location_time_;
 };
 
 template<> struct json_adapter_v2::json_encode<kis_tracked_location_v2> {
@@ -254,6 +260,8 @@ public:
     kis_historic_location_v2(const kis_tracked_location_triplet_v2& t) { set(t); }
     kis_historic_location_v2(const kis_tracked_location_full_v2& t) { set(t); }
     kis_historic_location_v2(const kis_gps_packinfo *pi) { set(pi); }
+
+    virtual ~kis_historic_location_v2() { };
 
     void reset() {
         geopoint_ = {0, 0};
@@ -421,6 +429,8 @@ public:
         samples_t1_pos_{0},
         samples_t2_pos_{0},
         samples_t3_pos_{0} { }
+
+    virtual ~kis_location_rrd_v2() { }
 
     void reset() {
         samples_tier1_ = {};

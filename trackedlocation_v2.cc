@@ -286,6 +286,55 @@ void kis_tracked_location_v2::add_loc_with_avg(const kis_gps_packinfo *p) {
     }
 }
 
+void kis_tracked_location_v2::as_json(std::ostream& os, json_adapter_v2::opts *opts) {
+    fmt::print(os, "{{");
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+
+
+    opts->next_key_comma = sv_comma;
+    fmt::print(os, "}}");
+}
+
+void kis_tracked_location_v2::filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts,
+        const json_adapter_v2::field_group_map& fields) {
+    if (fields.size() == 0) {
+        return as_json(os, opts);
+    }
+
+    auto sv_comma = opts->next_key_comma;
+    opts->next_key_comma = false;
+    fmt::print(os, "{{");
+
+    json_adapter_v2::field_group_map subgroup;
+
+    for (const auto& f : fields) {
+        switch (json_adapter_v2::consthash(f.first)) {
+			case json_adapter_v2::consthash("kismet.common.location.min_loc"):
+                json_adapter_v2::group_fields(f.second.subfields, subgroup);
+				json_adapter_v2::json_encode_keyed<kis_tracked_location_triplet_v2>{}(os, f.second.rename, opts, min_loc_, subgroup);
+				break;
+			case json_adapter_v2::consthash("kismet.common.location.max_loc"):
+                json_adapter_v2::group_fields(f.second.subfields, subgroup);
+				json_adapter_v2::json_encode_keyed<kis_tracked_location_triplet_v2>{}(os, f.second.rename, opts, max_loc_, subgroup);
+				break;
+			case json_adapter_v2::consthash("kismet.common.location.avg_loc"):
+                json_adapter_v2::group_fields(f.second.subfields, subgroup);
+				json_adapter_v2::json_encode_keyed<kis_tracked_location_triplet_v2>{}(os, f.second.rename, opts, avg_loc_, subgroup);
+				break;
+			case json_adapter_v2::consthash("kismet.common.location.last"):
+                json_adapter_v2::group_fields(f.second.subfields, subgroup);
+				json_adapter_v2::json_encode_keyed<kis_tracked_location_triplet_v2>{}(os, f.second.rename, opts, last_loc_, subgroup);
+				break;
+            default:
+                json_adapter_v2::json_encode_keyed<int>{}(os, f.second.rename, opts, 0);
+		}
+	}
+
+    fmt::print(os, "}}");
+    opts->next_key_comma = sv_comma;
+}
+
 void kis_historic_location_v2::set(const kis_tracked_location_triplet_v2& t) {
     geopoint_ = t.geopoint_;
     altitude_ = t.altitude_;
@@ -475,3 +524,4 @@ void kis_location_rrd_v2::filtered_as_json(std::ostream& os, json_adapter_v2::op
     fmt::print(os, "}}");
     opts->next_key_comma = sv_comma;
 }
+

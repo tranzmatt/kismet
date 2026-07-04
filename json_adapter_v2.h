@@ -20,6 +20,7 @@
 #define __JSON_ADAPTER_V2__
 
 #include <functional>
+#include <iterator>
 #include <list>
 #include <string>
 #include <string_view>
@@ -125,6 +126,13 @@ namespace json_adapter_v2 {
         }
     };
 
+    template<> struct json_encode<bool> {
+        void operator()(std::ostream& os, json_adapter_v2::opts *opts, bool e) {
+            fmt::print(os, "{}", e ? "true" : "false");
+        }
+    };
+
+
     template<> struct json_encode<char *> {
         void operator()(std::ostream& os, json_adapter_v2::opts *opts, char *e) {
             fmt::print(os, "\"{}\"", sanitize_string(e));
@@ -210,8 +218,12 @@ namespace json_adapter_v2 {
         }
     };
 
-    template<typename It> struct json_encode_array {
-        void operator()(std::ostream& os, json_adapter_v2::opts *opts, It first, It last) {
+    template<
+        typename It,
+        typename Fn1 = void (std::ostream&, json_adapter_v2::opts *, It first),
+        typename Fn2 = void (std::ostream&, json_adapter_v2::opts *, It first, json_adapter_v2::field_group_map&) >
+            struct json_encode_array_custom {
+        void operator()(std::ostream& os, json_adapter_v2::opts *opts, It first, It last, const Fn1 fn) {
             fmt::print(os, "[");
 
             bool comma = false;
@@ -221,14 +233,15 @@ namespace json_adapter_v2 {
                 }
                 comma = true;
 
-                json_encode<std::remove_pointer_t<It>>{}(os, opts, first);
+                fn(os, opts, first);
+                // json_encode<std::remove_pointer_t<It>>{}(os, opts, first);
             }
 
             fmt::print(os, "]");
         }
 
         void operator()(std::ostream& os, json_adapter_v2::opts *opts, It first, It last,
-                json_adapter_v2::field_group_map& fields) {
+                json_adapter_v2::field_group_map& fields, const Fn2 fn) {
             fmt::print(os, "[");
 
             bool comma = false;
@@ -238,10 +251,58 @@ namespace json_adapter_v2 {
                 }
                 comma = true;
 
-                json_encode<std::remove_pointer_t<It>>{}(os, opts, first, fields);
+                fn(os, opts, first, fields);
+                // json_encode<std::remove_pointer_t<It>>{}(os, opts, first, fields);
             }
 
             fmt::print(os, "]");
+        }
+    };
+
+    template<typename It> struct json_encode_array {
+        void operator()(std::ostream& os, json_adapter_v2::opts *opts, It first, It last) {
+            json_encode_array_custom<It>{}(os, opts, first, last,
+                    [](std::ostream& os, json_adapter_v2::opts *opts, It first) -> void {
+                        json_encode<typename std::iterator_traits<It>::value_type>{}(os, opts, *first);
+                    });
+            /*
+            fmt::print(os, "[");
+
+            bool comma = false;
+            for (; first != last; ++first) {
+                if (comma) {
+                    fmt::print(os, ",");
+                }
+                comma = true;
+
+                json_encode<typename std::iterator_traits<It>::value_type>{}(os, opts, *first);
+            }
+
+            fmt::print(os, "]");
+            */
+        }
+
+        void operator()(std::ostream& os, json_adapter_v2::opts *opts, It first, It last,
+                json_adapter_v2::field_group_map& fields) {
+            json_encode_array_custom<It>{}(os, opts, first, last, fields,
+                    [](std::ostream& os, json_adapter_v2::opts *opts, It first, json_adapter_v2::field_group_map& fm) -> void {
+                        json_encode<typename std::iterator_traits<It>::value_type>{}(os, opts, *first, fm);
+                    });
+            /*
+            fmt::print(os, "[");
+
+            bool comma = false;
+            for (; first != last; ++first) {
+                if (comma) {
+                    fmt::print(os, ",");
+                }
+                comma = true;
+
+                json_encode<typename std::iterator_traits<It>::value_type>{}(os, opts, *first, fields);
+            }
+
+            fmt::print(os, "]");
+            */
         }
     };
 
@@ -257,6 +318,25 @@ namespace json_adapter_v2 {
                 It first, It last, json_adapter_v2::field_group_map& fields) {
             fmt::print(os, "{}{}:", opts->next_key_comma ? "," : "", opts->name_permute(fn));
             json_encode_array<It>{}(os, opts, first, last, fields);
+            opts->next_key_comma = true;
+        }
+    };
+
+    template<typename It,
+        typename Fn1 = void (std::ostream&, json_adapter_v2::opts *, It first),
+        typename Fn2 = void (std::ostream&, json_adapter_v2::opts *, It first, json_adapter_v2::field_group_map&) >
+        struct json_encode_keyed_array_custom {
+        void operator()(std::ostream& os, const std::string& fn, json_adapter_v2::opts *opts,
+                It first, It last, Fn1 fnc) {
+            fmt::print(os, "{}{}:", opts->next_key_comma ? "," : "", opts->name_permute(fn));
+            json_encode_array_custom<It, Fn1, Fn2>{}(os, opts, first, last, fnc);
+            opts->next_key_comma = true;
+        }
+
+        void operator()(std::ostream& os, const std::string& fn, json_adapter_v2::opts *opts,
+                It first, It last, json_adapter_v2::field_group_map& fields, Fn2 fnc) {
+            fmt::print(os, "{}{}:", opts->next_key_comma ? "," : "", opts->name_permute(fn));
+            json_encode_array_custom<It, Fn1, Fn2>{}(os, opts, first, last, fields, fnc);
             opts->next_key_comma = true;
         }
     };
@@ -390,18 +470,18 @@ namespace json_adapter_v2 {
 
     };
 
-    template<typename It> struct json_encode_keyed_map_keys {
+    template<typename It, typename Mt = It> struct json_encode_keyed_map_keys {
         void operator()(std::ostream& os, const std::string& fn, json_adapter_v2::opts *opts,
                 It first, It last) {
             fmt::print(os, "{}{}:", opts->next_key_comma ? "," : "", opts->name_permute(fn));
-            json_encode_map_keys<It>{}(os, opts, first, last);
+            json_encode_map_keys<It, Mt>{}(os, opts, first, last);
             opts->next_key_comma = true;
         }
 
         void operator()(std::ostream& os, const std::string& fn, json_adapter_v2::opts *opts,
                 It first, It last, json_adapter_v2::field_group_map& fields) {
             fmt::print(os, "{}{}:", opts->next_key_comma ? "," : "", opts->name_permute(fn));
-            json_encode_map_keys<It>{}(os, opts, first, last, fields);
+            json_encode_map_keys<It, Mt>{}(os, opts, first, last, fields);
             opts->next_key_comma = true;
         }
     };
