@@ -19,7 +19,6 @@
 #ifndef __PHY_80211_COMPONENTS_V2__
 #define __PHY_80211_COMPONENTS_V2__
 
-#include "boost/beast/core/detail/base64.hpp"
 #include "config.h"
 
 #ifdef HAVE_LIBPCRE1
@@ -96,7 +95,7 @@ public:
     const auto& eapol_rsn_pmkid() const { return eapol_rsn_pmkid_; }
     void set_eapol_rsn_pmkid(const auto& pmk) { eapol_rsn_pmkid_ = base64::encode(pmk); }
 
-    const auto& packet() const { return packet_; }
+    auto& packet() const { return packet_; }
     void set_packet(const auto& packet) { packet_ = packet; }
 
     virtual void as_json(std::ostream& os, json_adapter_v2::opts *opts) override;
@@ -245,7 +244,8 @@ public:
 
     const auto ssid_regex() { return ssid_regex_; }
     void set_ssid_regex(const std::string& regex);
-    const auto& allowed_macs() { return allowed_macs_vec_; }
+
+    auto& allowed_macs() { return allowed_macs_vec_; }
     void set_allowed_macs(const auto& macs) { allowed_macs_vec_ = macs; }
 
     bool compare_ssid(const std::string& ssid, const mac_addr& mac);
@@ -983,7 +983,7 @@ public:
     auto client_type() const { return client_type_; }
     void set_client_type(auto v) { client_type_ = v; }
 
-    const auto& location() const { return location_; }
+    auto& location() const { return location_; }
     void set_location(const auto& v) { location_ = v; }
 
     const auto& bssid() const { return bssid_; }
@@ -1023,7 +1023,7 @@ public:
     const auto& cdp_port() const { return cdp_port_; }
     void set_cdp_port(const auto& v) { cdp_port_ = v; }
 
-    const auto& ip_v4() const { return ip_v4_; }
+    auto& ip_v4() const { return ip_v4_; }
     void set_ip_v4(const auto& v) { ip_v4_ = v; }
 
     auto decrypted() const { return decrypted_; }
@@ -1097,5 +1097,296 @@ template<> struct json_adapter_v2::json_encode<dot11_client_v2> {
      }
 };
 
+
+class dot11_tracked_device_v2 : public json_adapter_v2::jsonable {
+public:
+    dot11_tracked_device_v2() :
+    json_adapter_v2::jsonable() {
+        reset();
+    }
+
+    virtual ~dot11_tracked_device_v2() { }
+
+    void reset() {
+        snapshot_next_beacon_ = false;
+
+        type_set_ = 0;
+
+        client_map_ = {};
+
+        advertised_ssid_map_ = {};
+        responded_ssid_map_ = {};
+        probed_ssid_map_ = {};
+
+        associated_client_map_ = {};
+
+        client_disconnects_ = 0;
+        client_disconnect_last_time_ = 0;
+
+        bss_timestamp_ = 0;
+
+        num_fragments_ = 0;
+        num_retries_ = 0;
+
+        datasize_ = 0;
+        datasize_retry_ = 0;
+
+        last_bssid_ = {};
+
+        last_beacon_time_ = 0;
+
+        wpa_m3_count_ = 0;
+        wpa_m3_last_time_ = 0;
+
+        wpa_key_map_ = {};
+        wpa_nonce_vec_ = {};
+        wpa_anonce_vec_ = {};
+
+        beacon_packet_ = {};
+        pmkid_packet_ = {};
+
+        last_adv_ie_checksum_ = 0;
+        last_advertised_ssid_ = nullptr;
+        last_probed_ssid_ = nullptr;
+
+        min_tx_power_ = 0;
+        max_tx_power_ = 0;
+
+        supported_channels_vec_ = {};
+
+        link_measurement_capable_ = false;
+        neighbor_report_capable_ = false;
+
+        extended_capabilities_vec_ = {};
+
+        beacon_fingerprint_ = 0;
+        probe_fingerprint_ = 0;
+        response_fingerprint_ = 0;
+    }
+
+    auto type_set() const { return type_set_; }
+    void set_type_set(auto v) { type_set_ = v; }
+
+    auto snapshot_next_beacon() const { return snapshot_next_beacon_; }
+    void set_snapshot_next_beacon(auto v) { snapshot_next_beacon_ = v; }
+
+    auto& client_map() const { return client_map_; }
+    void set_client_map(auto& v) { client_map_ = v; }
+
+    auto& advertised_ssid_map() const { return advertised_ssid_map_; }
+    void set_advertised_ssid_map(auto& v) { advertised_ssid_map_ = v; }
+
+    auto& responded_ssid_map() const { return responded_ssid_map_; }
+    void set_responded_ssid_map(auto& v) { responded_ssid_map_ = v; }
+
+    auto& probed_ssid_map() const { return probed_ssid_map_; }
+    void set_probed_ssid_map(auto& v) { probed_ssid_map_ = v; }
+
+    auto& associated_client_map() const { return associated_client_map_; }
+    void set_associated_client_map(auto& v) { associated_client_map_ = v; }
+
+    auto client_disconnects() const { return client_disconnects_; }
+    void set_client_disconnects(auto v) { client_disconnects_ = v; }
+    void inc_client_disconnects(unsigned int d, time_t time) {
+        if (client_disconnect_last_time_ != time) {
+            client_disconnect_last_time_ = time;
+            client_disconnects_ = d;
+        } else {
+            client_disconnects_ += d;
+        }
+    }
+
+    auto bss_timestamp() const { return bss_timestamp_; }
+    void set_bss_timestamp(auto v) { bss_timestamp_ = v; }
+
+    auto num_fragments() const { return num_fragments_; }
+    void set_num_fragments(auto v) { num_fragments_ = v; }
+    void inc_num_fragments(auto v) { num_fragments_ += v; }
+
+    auto num_retries() const { return num_retries_; }
+    void set_num_retries(auto v) { num_retries_ = v; }
+    void inc_num_retries(auto r) { num_retries_ += r; }
+
+    auto datasize() const { return datasize_; }
+    void set_datasize(auto v) { datasize_ = v; }
+    void inc_datasize(auto v) { datasize_ += v; }
+
+    auto datasize_retry() const { return datasize_retry_; }
+    void set_datasize_retry(auto v) { datasize_retry_ = v; }
+    void inc_datasize_retry(auto v) { datasize_retry_ += v; }
+
+    auto last_bssid() const { return last_bssid_; }
+    void set_last_bssid(auto v) { last_bssid_ = v; }
+
+    auto last_beacon_time() const { return last_beacon_time_; }
+    void set_last_beacon_time(auto v) { last_beacon_time_ = v; }
+
+    auto wpa_m3_count() const { return wpa_m3_count_; }
+    void set_wpa_m3_count(auto v) { wpa_m3_count_ = v; }
+    void inc_wpa_m3_count(unsigned int d, time_t time) {
+        if (wpa_m3_last_time_ != time) {
+            wpa_m3_last_time_ = time;
+            wpa_m3_count_ = d;
+        } else {
+            wpa_m3_count_ += d;
+        }
+    }
+
+    auto& wpa_key_map() const { return wpa_key_map_; }
+    void set_wpa_key_map(auto& v) { wpa_key_map_ = v; }
+
+    auto& wpa_nonce_vec() const { return wpa_nonce_vec_; }
+    void set_wpa_nonce_vec(auto& v) { wpa_nonce_vec_ = v; }
+
+    auto& wpa_anonce_vec() const { return wpa_nonce_vec_; }
+    void set_wpa_anonce_vec(auto& v) { wpa_nonce_vec_ = v; }
+
+    auto& beacon_packet() const { return beacon_packet_; }
+    void set_beacon_packet(auto& v) { beacon_packet_ = v; }
+
+    auto& pmkid_packet() const { return pmkid_packet_; }
+    void set_pmkid_packet(auto& v) { pmkid_packet_ = v; }
+
+    auto last_adv_ie_checksum() const { return last_adv_ie_checksum_; }
+    void set_last_adv_ie_checksum(auto v) { last_adv_ie_checksum_ = v; }
+
+    auto last_advertised_ssid() const { return last_advertised_ssid_; }
+    void set_last_advertised_ssid(auto v) { last_advertised_ssid_ = v; }
+
+    auto last_probed_ssid() const { return last_probed_ssid_; }
+    void set_last_probed_ssid(auto v) { last_probed_ssid_ = v; }
+
+    auto min_tx_power() const { return min_tx_power_; }
+    void set_min_tx_power(auto v) { min_tx_power_ = v; }
+
+    auto max_tx_power() const { return max_tx_power_; }
+    void set_max_tx_power(auto v) { max_tx_power_ = v; }
+
+    auto& supported_channels_vec() const { return supported_channels_vec_; }
+    void set_supported_channels_vec(auto& v) { supported_channels_vec_ = v; }
+
+    auto link_measurement_capable() const { return link_measurement_capable_; }
+    void set_link_measurement_capable(auto v) { link_measurement_capable_ = v; }
+
+    auto neighbor_report_capable() const { return neighbor_report_capable_; }
+    void set_neighbor_report_capable(auto v) { neighbor_report_capable_ = v; }
+
+    auto& extended_capabilities_vec() const { return extended_capabilities_vec_; }
+    void set_extended_capabilities_vec(auto& v) { extended_capabilities_vec_ = v; }
+
+    auto beacon_fingerprint() const { return beacon_fingerprint_; }
+    void set_beacon_fingerprint(auto v) { beacon_fingerprint_ = v; }
+
+    auto probe_fingerprint() const { return probe_fingerprint_; }
+    void set_probe_fingerprint(auto v) { probe_fingerprint_ = v; }
+
+    auto response_fingerprint() const { return response_fingerprint_; }
+    void set_response_fingerprint(auto v) { response_fingerprint_ = v; }
+
+    virtual void as_json(std::ostream& os, json_adapter_v2::opts *opts) override;
+    virtual void filtered_as_json(std::ostream& os, json_adapter_v2::opts *opts, const json_adapter_v2::field_group_map& fields) override;
+
+protected:
+    // do we need to snapshot the next beacon so we can record it for eapol or pmkid?
+    bool snapshot_next_beacon_;
+
+    uint64_t type_set_;
+
+    // client state of what this device is associated to
+    using client_map_iter_t_ = std::unordered_map<mac_addr, dot11_client_v2>::iterator;
+    std::unordered_map<mac_addr, dot11_client_v2> client_map_;
+
+    // advertised SSIDs indexed by SSID hash
+    using advertised_ssid_map_iter_t_ = std::unordered_map<size_t, dot11_advertised_ssid_v2>::iterator;
+    std::unordered_map<size_t, dot11_advertised_ssid_v2> advertised_ssid_map_;
+
+    // responded SSIDs indexed by SSID hash
+    using responded_ssid_map_iter_t_ = advertised_ssid_map_iter_t_;
+    std::unordered_map<size_t, dot11_advertised_ssid_v2> responded_ssid_map_;
+
+    // probed SSIDs indexed by hash
+    using probed_ssid_map_iter_t_ = std::unordered_map<size_t, dot11_probed_ssid_v2>::iterator;
+    std::unordered_map<size_t, dot11_probed_ssid_v2> probed_ssid_map_;
+
+    // clients associated to this device, if this is an AP
+    using associated_client_map_iter_t_ = std::unordered_map<mac_addr, device_key_v2>::iterator;
+    std::unordered_map<mac_addr, device_key_v2> associated_client_map_;
+
+    // client disconnects in the past second
+    uint64_t client_disconnects_;
+    time_t client_disconnect_last_time_;
+
+    uint64_t bss_timestamp_;
+
+    uint64_t num_fragments_;
+    uint64_t num_retries_;
+
+    uint64_t datasize_;
+    uint64_t datasize_retry_;
+
+    // last BSSID this device was connected to, if a client
+    mac_addr last_bssid_;
+
+    // time of last beacon, if an AP
+    uint64_t last_beacon_time_;
+
+    // wpa m3 messages in the past second
+    uint64_t wpa_m3_count_;
+    time_t wpa_m3_last_time_;
+
+    using wpa_key_map_iter_t_ = std::unordered_map<mac_addr, dot11_tracked_eapol_v2>::iterator;
+    std::unordered_map<mac_addr, dot11_tracked_eapol_v2> wpa_key_map_;
+
+    using wpa_nonce_vec_iter_t_ = std::vector<dot11_tracked_nonce_v2>::iterator;
+    std::vector<dot11_tracked_nonce_v2> wpa_nonce_vec_;
+
+    using wpa_anonce_vec_iter_t_ = wpa_nonce_vec_iter_t_;
+    std::vector<dot11_tracked_nonce_v2> wpa_anonce_vec_;
+
+    kis_tracked_packet_v2 beacon_packet_;
+
+    kis_tracked_packet_v2 pmkid_packet_;
+
+    uint32_t last_adv_ie_checksum_;
+    dot11_advertised_ssid_v2 *last_advertised_ssid_;
+
+    dot11_probed_ssid_v2 *last_probed_ssid_;
+
+    uint8_t min_tx_power_;
+    uint8_t max_tx_power_;
+
+    using supported_channels_vec_iter_t_ = std::vector<double>::iterator;
+    std::vector<double> supported_channels_vec_;
+
+    bool link_measurement_capable_;
+    bool neighbor_report_capable_;
+
+    using extended_capabilities_vec_iter_t_ = std::vector<std::string>::iterator;
+    std::vector<std::string> extended_capabilities_vec_;
+
+    uint32_t beacon_fingerprint_;
+    uint32_t probe_fingerprint_;
+    uint32_t response_fingerprint_;
+};
+
+template<> struct json_adapter_v2::json_encode<dot11_tracked_device_v2> {
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, dot11_tracked_device_v2& e) {
+         e.as_json(os, opts);
+     }
+
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, dot11_tracked_device_v2 *e) {
+         e->as_json(os, opts);
+     }
+
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, dot11_tracked_device_v2& e,
+             json_adapter_v2::field_group_map& fields) {
+         e.filtered_as_json(os, opts, fields);
+     }
+
+     void operator()(std::ostream& os, json_adapter_v2::opts *opts, dot11_tracked_device_v2 *e,
+             json_adapter_v2::field_group_map& fields) {
+         e->filtered_as_json(os, opts, fields);
+     }
+};
 
 #endif /* __PHY_80211_COMPONENTS_V2__ */

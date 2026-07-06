@@ -179,6 +179,13 @@ namespace json_adapter_v2 {
         }
     };
 
+    struct json_encode_keyed_null {
+        void operator()(std::ostream& os, const std::string& fn, json_adapter_v2::opts *opts) {
+            fmt::print(os, "{}{}:null", opts->next_key_comma ? "," : "", opts->name_permute(fn));
+            opts->next_key_comma = true;
+        }
+    };
+
     template<typename E> struct json_encode_keyed;
 
     template<typename E> struct json_encode_keyed {
